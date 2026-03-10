@@ -22,28 +22,108 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Export Godot Web Build
-        uses: firebelley/godot-export@v7.0.0
-        with:
-          godot_executable_download_url: https://github.com/godotengine/godot/releases/download/4.4-stable/Godot_v4.4-stable_linux.x86_64.zip
-          godot_export_templates_download_url: https://github.com/godotengine/godot/releases/download/4.4-stable/Godot_v4.4-stable_export_templates.tpz
-          relative_project_path: "./"
-          use_preset_export_path: true
-          archive_output: false
-          cache: true
-          verbose: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Prepare build output
+      - name: Setup Godot
         run: |
-          echo "=== Checking build output ==="
-          find . -name "index.html" -not -path "./.git/*" 2>/dev/null || true
-          ls -la build/web/ 2>/dev/null || true
+          GODOT_VERSION="4.4-stable"
+          GODOT_SHORT="4.4.stable"
+
+          echo "=== Downloading Godot ==="
+          wget -q "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip" -O godot.zip
+          unzip -q godot.zip
+          chmod +x Godot_v${GODOT_VERSION}_linux.x86_64
+          sudo mv Godot_v${GODOT_VERSION}_linux.x86_64 /usr/local/bin/godot
+
+          echo "=== Downloading export templates ==="
+          wget -q "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_export_templates.tpz" -O templates.tpz
+
+          echo "=== Installing templates ==="
+          mkdir -p ~/.local/share/godot/export_templates/${GODOT_SHORT}
+          unzip -q templates.tpz
+          mv templates/* ~/.local/share/godot/export_templates/${GODOT_SHORT}/
+          ls -la ~/.local/share/godot/export_templates/${GODOT_SHORT}/ | grep -i web | head -20
+
+      - name: Import and Export
+        run: |
+          echo "=== Importing project ==="
+          godot --headless --import 2>&1 || true
+          sleep 2
+
+          echo "=== Trying export-release ==="
+          mkdir -p build/web
+          godot --headless --export-release "Web" build/web/index.html 2>&1 || {
+            echo "=== export-release failed, using manual assembly ==="
+
+            echo "=== Exporting pack ==="
+            godot --headless --export-pack "Web" build/web/index.pck 2>&1
+
+            TMPL=~/.local/share/godot/export_templates/4.4.stable
+
+            echo "=== Template files ==="
+            ls -la "$TMPL/" | grep -i web
+
+            # Find and copy wasm + js from templates
+            for f in "$TMPL"/web_*nothreads*release*; do
+              base=$(basename "$f")
+              if [[ "$base" == *.wasm ]]; then
+                cp "$f" build/web/index.wasm
+              elif [[ "$base" == *.js ]]; then
+                cp "$f" build/web/index.js
+              fi
+            done
+
+            # Create HTML shell
+            cat > build/web/index.html << 'HTMLEOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+            <title>Royal Puzzle 3</title>
+            <style>
+              *{margin:0;padding:0}
+              body{background:#1a1a2e;display:flex;justify-content:center;align-items:center;height:100vh;overflow:hidden}
+              #canvas{display:block}
+              #status{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#e0e0e0;font-family:sans-serif;text-align:center}
+              #status-progress{width:300px;height:6px;background:#333;border-radius:3px;margin:10px auto}
+              #status-progress-inner{width:0;height:100%;background:#6c5ce7;border-radius:3px;transition:width .3s}
+            </style>
+          </head>
+          <body>
+            <canvas id="canvas"></canvas>
+            <div id="status">
+              <p id="status-description">Loading...</p>
+              <div id="status-progress"><div id="status-progress-inner"></div></div>
+              <p id="status-notice"></p>
+            </div>
+            <script src="index.js"></script>
+            <script>
+              const engine = new Engine({
+                args:['--main-pack','index.pck'],
+                canvasResizePolicy:2,
+                executable:'index',
+              });
+              const sd=document.getElementById('status-description');
+              const sp=document.getElementById('status-progress-inner');
+              const sn=document.getElementById('status-notice');
+              const st=document.getElementById('status');
+              engine.startGame({
+                onProgress:function(c,t){if(t>0){sp.style.width=(c/t*100)+'%';sd.textContent='Loading... '+Math.round(c/t*100)+'%';}},
+              }).then(()=>{st.style.display='none';document.getElementById('canvas').focus();
+              }).catch(e=>{sd.textContent='Error';sn.textContent=e.message;});
+            </script>
+          </body>
+          </html>
+          HTMLEOF
+          }
+
+          echo "=== Build output ==="
+          ls -la build/web/
+
+      - name: Prepare site
+        run: |
           mkdir -p _site
-          if [ -d "build/web" ]; then
-            cp -r build/web/* _site/
-          fi
+          cp -r build/web/* _site/
+          # COOP/COEP headers for SharedArrayBuffer (GitHub Pages doesn't support _headers)
           ls -la _site/
 
       - name: Setup Pages
