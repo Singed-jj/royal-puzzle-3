@@ -23,20 +23,27 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Export Godot Web Build
-        uses: firebelley/godot-export@v6.1.0
+        uses: firebelley/godot-export@v7.0.0
         with:
           godot_executable_download_url: https://github.com/godotengine/godot/releases/download/4.4-stable/Godot_v4.4-stable_linux.x86_64.zip
           godot_export_templates_download_url: https://github.com/godotengine/godot/releases/download/4.4-stable/Godot_v4.4-stable_export_templates.tpz
-          relative_export_path: ""
+          relative_project_path: "./"
+          use_preset_export_path: true
           archive_output: false
           cache: true
+          verbose: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Prepare build output
         run: |
+          echo "=== Checking build output ==="
+          find . -name "index.html" -not -path "./.git/*" 2>/dev/null || true
+          ls -la build/web/ 2>/dev/null || true
           mkdir -p _site
-          cp -r /home/runner/.local/share/godot/builds/Web/* _site/ || true
+          if [ -d "build/web" ]; then
+            cp -r build/web/* _site/
+          fi
           ls -la _site/
 
       - name: Setup Pages
