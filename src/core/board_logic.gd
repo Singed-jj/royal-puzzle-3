@@ -38,7 +38,7 @@ func try_swap(from: Vector2i, to: Vector2i) -> bool:
 	return true
 
 func swap(from: Vector2i, to: Vector2i) -> void:
-	var temp := _grid[from.x][from.y]
+	var temp: int = _grid[from.x][from.y]
 	_grid[from.x][from.y] = _grid[to.x][to.y]
 	_grid[to.x][to.y] = temp
 

@@ -1,13 +1,23 @@
-[gd_scene load_steps=4 format=3 uid="uid://game_scene"]
+[gd_scene load_steps=7 format=3 uid="uid://game_scene"]
 
 [ext_resource type="Script" path="res://scenes/game.gd" id="1"]
 [ext_resource type="PackedScene" path="res://src/board/board.tscn" id="2"]
 [ext_resource type="Script" path="res://src/board/input_handler.gd" id="3"]
+[ext_resource type="PackedScene" path="res://src/ui/hud.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://src/ui/result_popup.tscn" id="5"]
+[ext_resource type="Script" path="res://src/effects/particle_manager.gd" id="6"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1")
 
 [node name="Board" parent="." instance=ExtResource("2")]
 
+[node name="ParticleManager" type="Node2D" parent="."]
+script = ExtResource("6")
+
 [node name="InputHandler" type="Node2D" parent="."]
 script = ExtResource("3")
+
+[node name="HUD" parent="." instance=ExtResource("4")]
+
+[node name="ResultPopup" parent="." instance=ExtResource("5")]

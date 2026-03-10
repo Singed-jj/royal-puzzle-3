@@ -5,7 +5,7 @@ var remaining_moves: int = 20
 var goals: Dictionary = {}  # {"gem_type": {"current": 0, "target": 12}}
 var is_level_active: bool = false
 
-func start_level(level_id: int, level_data: LevelData) -> void:
+func start_level(level_id: int, level_data) -> void:
 	current_level = level_id
 	remaining_moves = level_data.moves
 	goals.clear()

@@ -1,4 +1,5 @@
 class_name GravityHandler
+extends RefCounted
 
 
 class FallMove:
@@ -107,8 +108,8 @@ func _apply_diagonal_falls(
 				# 바로 위(row-1)에서 대각선으로 떨어질 수 있는 보석 탐색
 				# 좌상(col-1, row-1), 우상(col+1, row-1) 순서로 시도
 				for dc in [-1, 1]:
-					var src_col := col + dc
-					var src_row := row - 1
+					var src_col: int = col + dc
+					var src_row: int = row - 1
 					if src_col < 0 or src_col >= cols:
 						continue
 					if work_board[src_col][src_row] == EMPTY:

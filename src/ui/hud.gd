@@ -1,8 +1,8 @@
 extends CanvasLayer
 
-@onready var moves_label: Label = $MovesPanel/MovesLabel
-@onready var target_container: VBoxContainer = $TargetPanel/TargetContainer
-@onready var avatar: TextureRect = $AvatarPanel/Avatar
+@onready var moves_label: Label = $TopBar/MovesPanel/MovesLabel
+@onready var target_container: VBoxContainer = $TopBar/TargetPanel/TargetContainer
+@onready var avatar: TextureRect = $TopBar/AvatarPanel/Avatar
 @onready var booster_bar: HBoxContainer = $BoosterBar
 
 var _goal_labels: Dictionary = {}

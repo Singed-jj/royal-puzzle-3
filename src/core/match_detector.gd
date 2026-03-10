@@ -1,4 +1,5 @@
 class_name MatchDetector
+extends RefCounted
 
 
 class MatchResult:

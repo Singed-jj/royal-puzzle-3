@@ -13,9 +13,27 @@ const GEM_COLORS := [
 	Color.YELLOW, Color.PURPLE, Color.ORANGE
 ]
 
+static var _placeholder_texture: ImageTexture
+
+static func _get_placeholder() -> ImageTexture:
+	if _placeholder_texture == null:
+		var img := Image.create(40, 40, false, Image.FORMAT_RGBA8)
+		img.fill(Color.WHITE)
+		# 둥근 느낌을 위해 모서리 투명 처리
+		for x in range(40):
+			for y in range(40):
+				var dx := x - 19.5
+				var dy := y - 19.5
+				if dx * dx + dy * dy > 18.0 * 18.0:
+					img.set_pixel(x, y, Color.TRANSPARENT)
+		_placeholder_texture = ImageTexture.create_from_image(img)
+	return _placeholder_texture
+
 func setup(type: int, col: int, row: int) -> void:
 	gem_type = type
 	grid_pos = Vector2i(col, row)
+	if not texture:
+		texture = _get_placeholder()
 	position = _grid_to_world(col, row)
 	_target_position = position
 	modulate = GEM_COLORS[type] if type >= 0 and type < GEM_COLORS.size() else Color.WHITE

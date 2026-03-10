@@ -59,7 +59,7 @@ func try_swap(from: Vector2i, to: Vector2i) -> void:
 
 	_destroy_matched(result.destroyed_cells)
 	GameEvents.gems_matched.emit(result.destroyed_cells, result.matches[0].type if result.matches.size() > 0 else "")
-	GameEvents.moves_changed.emit(-1)
+	GameManager.use_move()
 
 	await get_tree().create_timer(0.2).timeout
 	_run_cascade()

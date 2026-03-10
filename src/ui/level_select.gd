@@ -5,10 +5,11 @@ extends Control
 @onready var room_label: Label = $RoomLabel
 
 var _current_room: int = 0
+var _level_generator := LevelGenerator.new()
 
 func _ready() -> void:
 	back_button.pressed.connect(_on_back_pressed)
-	_current_room = SaveManager.data.get("current_room", 0)
+	_current_room = (SaveManager.data.current_level - 1) / 10 if SaveManager.data.has("current_level") else 0
 	room_label.text = "Room %d" % (_current_room + 1)
 	_populate_levels()
 
@@ -22,9 +23,8 @@ func _populate_levels() -> void:
 	for level_id in range(start_level, end_level + 1):
 		var btn := Button.new()
 		btn.custom_minimum_size = Vector2(60, 60)
-		var level_save = SaveManager.data.levels.get(str(level_id), {})
-		var stars = level_save.get("stars", 0)
-		var unlocked = level_id == 1 or SaveManager.data.levels.has(str(level_id - 1))
+		var stars: int = SaveManager.get_level_stars(level_id)
+		var unlocked: bool = level_id <= SaveManager.data.current_level
 
 		if unlocked:
 			btn.text = str(level_id)
@@ -38,7 +38,7 @@ func _populate_levels() -> void:
 		grid.add_child(btn)
 
 func _on_level_pressed(level_id: int) -> void:
-	var level_data := LevelGenerator.generate_level(level_id)
+	var level_data := _level_generator.generate(level_id)
 	GameManager.start_level(level_id, level_data)
 	get_tree().change_scene_to_file("res://scenes/game.tscn")
 
