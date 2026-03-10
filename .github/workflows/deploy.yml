@@ -1,23 +1,11 @@
-name: Build and Deploy to GitHub Pages
+name: Build and Deploy to Vercel
 
 on:
   push:
     branches: [main]
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
-
 jobs:
   build-and-deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,34 +28,47 @@ jobs:
           mkdir -p ~/.local/share/godot/export_templates/${GODOT_SHORT}
           unzip -q templates.tpz
           mv templates/* ~/.local/share/godot/export_templates/${GODOT_SHORT}/
-          ls -la ~/.local/share/godot/export_templates/${GODOT_SHORT}/ | grep -i web | head -20
+          ls ~/.local/share/godot/export_templates/${GODOT_SHORT}/ | grep -i web
 
-      - name: Import and Export
+      - name: Build Web Export
         run: |
           echo "=== Importing project ==="
           godot --headless --import 2>&1 || true
           sleep 2
 
-          echo "=== Trying export-release ==="
           mkdir -p build/web
-          godot --headless --export-release "Web" build/web/index.html 2>&1 || {
-            echo "=== export-release failed, using manual assembly ==="
+
+          echo "=== Trying export-release ==="
+          if godot --headless --export-release "Web" build/web/index.html 2>&1; then
+            echo "export-release succeeded"
+          else
+            echo "=== export-release failed, manual assembly ==="
 
             echo "=== Exporting pack ==="
             godot --headless --export-pack "Web" build/web/index.pck 2>&1
 
             TMPL=~/.local/share/godot/export_templates/4.4.stable
 
-            echo "=== Template files ==="
-            ls -la "$TMPL/" | grep -i web
+            echo "=== Unzipping web_nothreads_release template ==="
+            mkdir -p /tmp/web_template
+            unzip -o "$TMPL/web_nothreads_release.zip" -d /tmp/web_template/
+            ls -la /tmp/web_template/
 
-            # Find and copy wasm + js from templates
-            for f in "$TMPL"/web_*nothreads*release*; do
+            # Copy wasm and js from unzipped template
+            cp /tmp/web_template/*.wasm build/web/index.wasm 2>/dev/null || true
+            cp /tmp/web_template/*.js build/web/index.js 2>/dev/null || true
+            cp /tmp/web_template/*.worker.js build/web/index.worker.js 2>/dev/null || true
+
+            # If files have specific names, rename them
+            for f in /tmp/web_template/godot.*; do
+              ext="${f##*.}"
               base=$(basename "$f")
               if [[ "$base" == *.wasm ]]; then
                 cp "$f" build/web/index.wasm
-              elif [[ "$base" == *.js ]]; then
+              elif [[ "$base" == *.js && "$base" != *.worker.js ]]; then
                 cp "$f" build/web/index.js
+              elif [[ "$base" == *.worker.js ]]; then
+                cp "$f" build/web/index.worker.js
               fi
             done
 
@@ -104,36 +105,30 @@ jobs:
               });
               const sd=document.getElementById('status-description');
               const sp=document.getElementById('status-progress-inner');
-              const sn=document.getElementById('status-notice');
               const st=document.getElementById('status');
               engine.startGame({
                 onProgress:function(c,t){if(t>0){sp.style.width=(c/t*100)+'%';sd.textContent='Loading... '+Math.round(c/t*100)+'%';}},
               }).then(()=>{st.style.display='none';document.getElementById('canvas').focus();
-              }).catch(e=>{sd.textContent='Error';sn.textContent=e.message;});
+              }).catch(e=>{sd.textContent='Error';document.getElementById('status-notice').textContent=e.message;});
             </script>
           </body>
           </html>
           HTMLEOF
-          }
+          fi
 
           echo "=== Build output ==="
           ls -la build/web/
 
-      - name: Prepare site
+      - name: Copy Vercel config
+        run: cp vercel.json build/web/vercel.json
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Deploy to Vercel
         run: |
-          mkdir -p _site
-          cp -r build/web/* _site/
-          # COOP/COEP headers for SharedArrayBuffer (GitHub Pages doesn't support _headers)
-          ls -la _site/
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: '_site'
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          cd build/web
+          vercel deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
