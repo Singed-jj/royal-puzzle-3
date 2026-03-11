@@ -13,32 +13,24 @@ const GEM_COLORS := [
 	Color.YELLOW, Color.PURPLE, Color.ORANGE
 ]
 
-# 스프라이트시트: 2816x1536, 6개 젬 가로 배열
-const SPRITESHEET_PATH := "res://assets/sprites/gems/gem_spritesheet.png"
-const SPRITE_COLS := 6
-const SPRITE_WIDTH := 469  # 2816 / 6 ≈ 469
-const SPRITE_HEIGHT := 1536
-# 젬 콘텐츠 영역 (상하 여백 제거)
-const GEM_Y_OFFSET := 400
-const GEM_CONTENT_HEIGHT := 800
+# 개별 젬 PNG 파일 경로 (128x128, 투명 배경)
+const GEM_PATHS := [
+	"res://assets/sprites/gems/gem_0.png",  # RED - heart
+	"res://assets/sprites/gems/gem_1.png",  # BLUE - diamond
+	"res://assets/sprites/gems/gem_2.png",  # GREEN - leaf
+	"res://assets/sprites/gems/gem_3.png",  # YELLOW - star
+	"res://assets/sprites/gems/gem_4.png",  # PURPLE - pentagon
+	"res://assets/sprites/gems/gem_5.png",  # ORANGE - ball
+]
 
 static var _gem_textures: Array = []
-static var _spritesheet: Texture2D
 
 static func _load_gem_textures() -> void:
 	if _gem_textures.size() > 0:
 		return
-	_spritesheet = load(SPRITESHEET_PATH)
-	if _spritesheet == null:
-		return
-	for i in SPRITE_COLS:
-		var atlas := AtlasTexture.new()
-		atlas.atlas = _spritesheet
-		atlas.region = Rect2(
-			i * SPRITE_WIDTH + 40, GEM_Y_OFFSET,
-			SPRITE_WIDTH - 80, GEM_CONTENT_HEIGHT
-		)
-		_gem_textures.append(atlas)
+	for path in GEM_PATHS:
+		var tex: Texture2D = load(path)
+		_gem_textures.append(tex)
 
 static var _placeholder_texture: ImageTexture
 
