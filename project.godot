@@ -40,10 +40,6 @@ touch={
 "events": []
 }
 
-[gui]
-
-theme/default_font="res://assets/fonts/NotoSansKR-Bold.ttf"
-
 [rendering]
 
 textures/canvas_textures/default_texture_filter=0

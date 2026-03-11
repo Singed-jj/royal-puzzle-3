@@ -1,5 +1,12 @@
 extends Node
 
+const FONT_PATH := "res://assets/fonts/NotoSansKR-Bold.ttf"
+
+func _ready() -> void:
+	var font := load(FONT_PATH) as Font
+	if font:
+		ThemeDB.fallback_font = font
+
 # Board events
 signal gems_matched(cells: Array, match_type: String)
 signal gems_destroyed(cells: Array)
