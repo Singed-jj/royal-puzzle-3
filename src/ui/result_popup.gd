@@ -21,8 +21,8 @@ func _set_visible(show: bool) -> void:
 
 func _on_level_completed(stars: int) -> void:
 	_set_visible(true)
-	title_label.text = "레벨 클리어!"
-	message_label.text = "축하합니다!"
+	title_label.text = "Level Clear!"
+	message_label.text = "Congratulations!"
 	_show_stars(stars)
 	continue_button.visible = true
 	retry_button.visible = false
@@ -30,8 +30,8 @@ func _on_level_completed(stars: int) -> void:
 
 func _on_level_failed() -> void:
 	_set_visible(true)
-	title_label.text = "실패..."
-	message_label.text = "다시 도전하세요!"
+	title_label.text = "Failed..."
+	message_label.text = "Try Again!"
 	_show_stars(0)
 	continue_button.visible = false
 	retry_button.visible = true
