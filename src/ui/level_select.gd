@@ -9,7 +9,7 @@ var _level_generator := LevelGenerator.new()
 
 func _ready() -> void:
 	back_button.pressed.connect(_on_back_pressed)
-	_current_room = (SaveManager.data.current_level - 1) / 10 if SaveManager.data.has("current_level") else 0
+	_current_room = (SaveManager.data.get("current_level", 1) - 1) / 10
 	room_label.text = "Room %d" % (_current_room + 1)
 	_populate_levels()
 
@@ -19,12 +19,15 @@ func _populate_levels() -> void:
 
 	var start_level := _current_room * 10 + 1
 	var end_level := start_level + 9
+	var current_level = SaveManager.data.get("current_level", 1)
+	if typeof(current_level) == TYPE_FLOAT:
+		current_level = int(current_level)
 
 	for level_id in range(start_level, end_level + 1):
 		var btn := Button.new()
 		btn.custom_minimum_size = Vector2(60, 60)
 		var stars: int = SaveManager.get_level_stars(level_id)
-		var unlocked: bool = level_id <= SaveManager.data.current_level
+		var unlocked: bool = level_id <= current_level
 
 		if unlocked:
 			btn.text = str(level_id)
@@ -38,8 +41,8 @@ func _populate_levels() -> void:
 		grid.add_child(btn)
 
 func _on_level_pressed(level_id: int) -> void:
-	var level_data := _level_generator.generate(level_id)
-	GameManager.start_level(level_id, level_data)
+	GameManager.current_level = level_id
+	GameManager.is_level_active = false
 	get_tree().change_scene_to_file("res://scenes/game.tscn")
 
 func _on_back_pressed() -> void:
