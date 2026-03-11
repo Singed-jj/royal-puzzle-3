@@ -1,11 +1,11 @@
 class_name LevelGenerator
 
 const ROOM_NAMES: Array[String] = [
-	"서버실", "감옥", "와인 저장고", "하수도",
-	"우편물 창고", "식당", "휴게실", "환기 덕트",
-	"문서 보관실", "인사팀", "회의실", "경리실",
-	"감시실", "트로피 룸", "스파", "사장실",
-	"엘리베이터", "옥상", "외벽", "정문",
+	"Server Room", "Prison", "Wine Cellar", "Sewer",
+	"Mail Room", "Dining Hall", "Lounge", "Air Duct",
+	"Archive", "HR Office", "Meeting Room", "Accounting",
+	"Security", "Trophy Room", "Spa", "CEO Office",
+	"Elevator", "Rooftop", "Outer Wall", "Main Gate",
 ]
 
 const OBSTACLE_TYPES: Array[String] = ["stone", "fence", "grass", "chain"]
