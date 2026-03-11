@@ -1,11 +1,23 @@
-name: Build and Deploy to Vercel
+name: Build and Deploy to GitHub Pages
 
 on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
   build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,107 +40,52 @@ jobs:
           mkdir -p ~/.local/share/godot/export_templates/${GODOT_SHORT}
           unzip -q templates.tpz
           mv templates/* ~/.local/share/godot/export_templates/${GODOT_SHORT}/
-          ls ~/.local/share/godot/export_templates/${GODOT_SHORT}/ | grep -i web
 
       - name: Build Web Export
         run: |
+          TMPL=~/.local/share/godot/export_templates/4.4.stable
+
           echo "=== Importing project ==="
           godot --headless --import 2>&1 || true
           sleep 2
 
           mkdir -p build/web
 
-          echo "=== Trying export-release ==="
-          if godot --headless --export-release "Web" build/web/index.html 2>&1; then
-            echo "export-release succeeded"
-          else
-            echo "=== export-release failed, manual assembly ==="
+          echo "=== Exporting pack ==="
+          godot --headless --export-pack "Web" build/web/index.pck 2>&1
 
-            echo "=== Exporting pack ==="
-            godot --headless --export-pack "Web" build/web/index.pck 2>&1
+          echo "=== Unzipping web template ==="
+          mkdir -p /tmp/web_template
+          unzip -o "$TMPL/web_nothreads_release.zip" -d /tmp/web_template/
 
-            TMPL=~/.local/share/godot/export_templates/4.4.stable
+          # Copy template files with index. prefix
+          cp /tmp/web_template/godot.js build/web/index.js
+          cp /tmp/web_template/godot.wasm build/web/index.wasm
+          cp /tmp/web_template/godot.audio.worklet.js build/web/index.audio.worklet.js 2>/dev/null || true
+          cp /tmp/web_template/godot.audio.position.worklet.js build/web/index.audio.position.worklet.js 2>/dev/null || true
+          cp /tmp/web_template/godot.service.worker.js build/web/index.service.worker.js 2>/dev/null || true
+          cp /tmp/web_template/godot.offline.html build/web/index.offline.html 2>/dev/null || true
 
-            echo "=== Unzipping web_nothreads_release template ==="
-            mkdir -p /tmp/web_template
-            unzip -o "$TMPL/web_nothreads_release.zip" -d /tmp/web_template/
-            ls -la /tmp/web_template/
-
-            # Copy wasm and js from unzipped template
-            cp /tmp/web_template/*.wasm build/web/index.wasm 2>/dev/null || true
-            cp /tmp/web_template/*.js build/web/index.js 2>/dev/null || true
-            cp /tmp/web_template/*.worker.js build/web/index.worker.js 2>/dev/null || true
-
-            # If files have specific names, rename them
-            for f in /tmp/web_template/godot.*; do
-              ext="${f##*.}"
-              base=$(basename "$f")
-              if [[ "$base" == *.wasm ]]; then
-                cp "$f" build/web/index.wasm
-              elif [[ "$base" == *.js && "$base" != *.worker.js ]]; then
-                cp "$f" build/web/index.js
-              elif [[ "$base" == *.worker.js ]]; then
-                cp "$f" build/web/index.worker.js
-              fi
-            done
-
-            # Create HTML shell
-            cat > build/web/index.html << 'HTMLEOF'
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-            <title>Royal Puzzle 3</title>
-            <style>
-              *{margin:0;padding:0}
-              body{background:#1a1a2e;display:flex;justify-content:center;align-items:center;height:100vh;overflow:hidden}
-              #canvas{display:block}
-              #status{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#e0e0e0;font-family:sans-serif;text-align:center}
-              #status-progress{width:300px;height:6px;background:#333;border-radius:3px;margin:10px auto}
-              #status-progress-inner{width:0;height:100%;background:#6c5ce7;border-radius:3px;transition:width .3s}
-            </style>
-          </head>
-          <body>
-            <canvas id="canvas"></canvas>
-            <div id="status">
-              <p id="status-description">Loading...</p>
-              <div id="status-progress"><div id="status-progress-inner"></div></div>
-              <p id="status-notice"></p>
-            </div>
-            <script src="index.js"></script>
-            <script>
-              const engine = new Engine({
-                args:['--main-pack','index.pck'],
-                canvasResizePolicy:2,
-                executable:'index',
-              });
-              const sd=document.getElementById('status-description');
-              const sp=document.getElementById('status-progress-inner');
-              const st=document.getElementById('status');
-              engine.startGame({
-                onProgress:function(c,t){if(t>0){sp.style.width=(c/t*100)+'%';sd.textContent='Loading... '+Math.round(c/t*100)+'%';}},
-              }).then(()=>{st.style.display='none';document.getElementById('canvas').focus();
-              }).catch(e=>{sd.textContent='Error';document.getElementById('status-notice').textContent=e.message;});
-            </script>
-          </body>
-          </html>
-          HTMLEOF
-          fi
+          # Use official HTML shell with prefix replacement
+          sed 's/godot\./index\./g; s/\$GODOT_PROJECT_NAME/Royal Puzzle 3/g; s/\$GODOT_HEAD_INCLUDE//g' /tmp/web_template/godot.html > build/web/index.html
 
           echo "=== Build output ==="
           ls -la build/web/
 
-      - name: Copy Vercel config
-        run: cp vercel.json build/web/vercel.json
-
-      - name: Install Vercel CLI
-        run: npm install -g vercel
-
-      - name: Deploy to Vercel
+      - name: Prepare site
         run: |
-          cd build/web
-          vercel deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          mkdir -p _site
+          cp build/web/index.* _site/
+          ls -la _site/
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '_site'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
