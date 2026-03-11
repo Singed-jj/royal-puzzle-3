@@ -8,8 +8,6 @@ const ROOM_NAMES: Array[String] = [
 	"엘리베이터", "옥상", "외벽", "정문",
 ]
 
-const GEM_NAMES: Array[String] = ["red", "blue", "green", "yellow", "purple", "orange"]
-
 const OBSTACLE_TYPES: Array[String] = ["stone", "fence", "grass", "chain"]
 
 
@@ -37,7 +35,7 @@ func generate(level_id: int) -> LevelData:
 	data.goals_data = []
 	for i in range(goal_count):
 		data.goals_data.append({
-			"type": GEM_NAMES[i % GEM_NAMES.size()],
+			"type": Types.GEM_NAMES[i % Types.GEM_NAMES.size()],
 			"amount": goal_amount,
 		})
 
