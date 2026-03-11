@@ -14,6 +14,7 @@ const BOARD_COLS := 8
 const BOARD_ROWS := 10
 const CELL_SIZE := 44
 const GEM_TYPES_COUNT := 6
+const GEM_NAMES: Array[String] = ["red", "blue", "green", "yellow", "purple", "orange"]
 const MATCH_MIN := 3
 
 const BOARD_OFFSET_X := (390 - BOARD_COLS * CELL_SIZE) / 2

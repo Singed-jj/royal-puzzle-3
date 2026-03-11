@@ -58,6 +58,7 @@ func try_swap(from: Vector2i, to: Vector2i) -> void:
 		return
 
 	_destroy_matched(result.destroyed_cells)
+	_update_goal_progress(result.matches)
 	GameEvents.gems_matched.emit(result.destroyed_cells, result.matches[0].type if result.matches.size() > 0 else "")
 	GameManager.use_move()
 
@@ -86,6 +87,7 @@ func _run_cascade() -> void:
 		if not result.matched:
 			break
 		_destroy_matched(result.destroyed_cells)
+		_update_goal_progress(result.matches)
 		GameEvents.cascade_started.emit()
 		await get_tree().create_timer(0.2).timeout
 
@@ -104,3 +106,12 @@ func _spawn_new_gems(positions: Array) -> void:
 	for pos in positions:
 		var gem_type := _logic.get_gem(pos.x, pos.y)
 		_spawn_gem(pos.x, pos.y, gem_type)
+
+func _update_goal_progress(matches: Array) -> void:
+	var counts: Dictionary = {}
+	for m in matches:
+		if m.gem_type >= 0 and m.gem_type < Types.GEM_NAMES.size():
+			var gem_name: String = Types.GEM_NAMES[m.gem_type]
+			counts[gem_name] = counts.get(gem_name, 0) + m.cells.size()
+	for goal_type in counts:
+		GameManager.add_goal_progress(goal_type, counts[goal_type])
